@@ -136,13 +136,16 @@ export const updatePlayer = (player: Player, input: InputHandler, particles: Par
           player.isAttacking = false;
       }
   } else {
+      const attackSpeed = player.stats.attackSpeed || 1;
+      const currentMaxCooldown = ATTACK_COOLDOWN / attackSpeed;
+      
       if (isActionHeld && player.attackCooldown <= 0) {
           player.isAttacking = true;
-          player.attackCooldown = ATTACK_COOLDOWN;
+          player.attackCooldown = currentMaxCooldown;
           audio.playAttack();
       }
       if (player.attackCooldown > 0) player.attackCooldown--;
-      if (player.attackCooldown < ATTACK_COOLDOWN - ATTACK_DURATION) player.isAttacking = false;
+      if (player.attackCooldown < currentMaxCooldown - ATTACK_DURATION) player.isAttacking = false;
   }
 };
 
@@ -166,7 +169,7 @@ const recalculateStats = (player: Player) => {
         const weapon = player.loadout[player.activeSlot];
         if (weapon?.stats) {
             if (weapon.stats.damage) newStats.damage += weapon.stats.damage;
-            if (weapon.stats.attackSpeed) newStats.attackSpeed -= weapon.stats.attackSpeed;
+            if (weapon.stats.attackSpeed) newStats.attackSpeed += weapon.stats.attackSpeed;
         }
     }
     player.stats = newStats;

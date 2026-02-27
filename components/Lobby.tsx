@@ -264,17 +264,20 @@ const Lobby: React.FC<LobbyProps> = ({ setGameState, lastResult, stash, setStash
               if (item.stats.hp) hp += item.stats.hp;
               if (item.stats.damage) dmg += item.stats.damage;
               if (item.stats.moveSpeed) spd += item.stats.moveSpeed;
-              if (item.stats.attackSpeed) atkSpd -= item.stats.attackSpeed;
+              if (item.stats.attackSpeed) atkSpd += item.stats.attackSpeed;
           }
       });
 
       const weapon = loadout.PRIMARY_WEAPON || loadout.SECONDARY_WEAPON;
       if (weapon && weapon.stats) {
           if (weapon.stats.damage) dmg += weapon.stats.damage;
-          if (weapon.stats.attackSpeed) atkSpd -= weapon.stats.attackSpeed;
+          if (weapon.stats.attackSpeed) atkSpd += weapon.stats.attackSpeed;
       }
 
-      return { hp, dmg, spd: spd.toFixed(1), atkSpd: Math.round((1 - atkSpd) * 100) };
+      // Display percentage change from base (1.0)
+      // If atkSpd is 1.05 -> +5%
+      // If atkSpd is 0.5 -> -50%
+      return { hp, dmg, spd: spd.toFixed(1), atkSpd: Math.round((atkSpd - 1) * 100) };
   };
 
   const stats = calculateDisplayStats();
@@ -466,17 +469,26 @@ const Lobby: React.FC<LobbyProps> = ({ setGameState, lastResult, stash, setStash
                              onClick={handleOpenChest}
                              className="group relative"
                          >
-                             <div className="w-48 h-32 bg-yellow-900 border-4 border-yellow-600 rounded-lg shadow-[0_0_50px_rgba(234,179,8,0.5)] flex items-center justify-center transform transition-transform group-hover:scale-105 group-active:scale-95">
-                                 <div className="text-yellow-500 font-bold text-2xl">OPEN CHEST</div>
+                             <div className="w-48 h-32 bg-yellow-900 border-4 border-yellow-600 rounded-lg shadow-[0_0_50px_rgba(234,179,8,0.5)] flex items-center justify-center transform transition-transform group-hover:scale-105 group-active:scale-95 overflow-hidden">
+                                 <div className="absolute inset-0 bg-yellow-400/20 group-hover:bg-yellow-400/30 transition-colors"></div>
+                                 <div className="text-yellow-500 font-bold text-2xl relative z-10 drop-shadow-md">OPEN CHEST</div>
+                                 {/* Lock Icon or similar visual */}
+                                 <div className="absolute w-8 h-12 bg-yellow-950 border-2 border-yellow-600 rounded-t-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
                              </div>
                          </button>
                      ) : (
-                         <div className="flex flex-col items-center animate-in zoom-in duration-500">
-                             <div className={`w-32 h-32 border-4 rounded-lg flex items-center justify-center mb-4 ${getRarityColor(lastResult.bonus.rarity)} ${getRarityBg(lastResult.bonus.rarity)} shadow-[0_0_50px_currentColor]`}>
-                                 <div className={`w-16 h-16 rounded ${getColorForCategory(lastResult.bonus.category || '')}`}></div>
+                         <div className="flex flex-col items-center animate-in zoom-in-50 duration-500 slide-in-from-bottom-10">
+                             <div className="relative group">
+                                 {/* Flash/Burst Effect */}
+                                 <div className={`absolute inset-0 ${getRarityColor(lastResult.bonus.rarity).split(' ')[1].replace('text-', 'bg-')}/30 animate-ping rounded-lg duration-1000`}></div>
+                                 <div className={`absolute -inset-20 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[spin_3s_linear_infinite] opacity-50`}></div>
+                                 
+                                 <div className={`w-40 h-40 border-4 rounded-xl flex items-center justify-center mb-6 ${getRarityColor(lastResult.bonus.rarity)} ${getRarityBg(lastResult.bonus.rarity)} shadow-[0_0_60px_currentColor] relative z-10 bg-gray-900 transform transition-transform hover:scale-110`}>
+                                     <ItemIcon item={lastResult.bonus} className="w-24 h-24" />
+                                 </div>
                              </div>
-                             <p className={`text-2xl font-bold ${getRarityColor(lastResult.bonus.rarity).split(' ')[1]}`}>{lastResult.bonus.name}</p>
-                             <p className="text-gray-400 mt-2">Added to Stash</p>
+                             <p className={`text-3xl font-bold ${getRarityColor(lastResult.bonus.rarity).split(' ')[1]} animate-in fade-in duration-700 delay-200 drop-shadow-lg`}>{lastResult.bonus.name}</p>
+                             <p className="text-gray-400 mt-2 animate-in fade-in duration-1000 delay-500 font-mono tracking-widest text-sm">ADDED TO STASH</p>
                          </div>
                      )}
                  </div>
@@ -777,6 +789,110 @@ const ItemIcon: React.FC<{ item: Item, className?: string }> = ({ item, classNam
                     <path d="M18 5 C 10 2, 2 10, 5 18" stroke="#854D0E" strokeWidth="2.5" fill="none" strokeLinecap="round" />
                     {/* Grip */}
                     <path d="M10 10 L 13 13" stroke="#451a03" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+            </div>
+        );
+    }
+    if (item.name === 'Epic Sword') {
+        return (
+            <div className={`${className} flex items-center justify-center`}>
+                <svg viewBox="0 0 24 24" className="w-full h-full" style={{ filter: 'drop-shadow(0px 0px 5px rgba(168, 85, 247, 0.8))' }}>
+                    {/* Blade - Purple tint */}
+                    <path d="M10 14 L19 5 L21 3 L20 6 L11 15 Z" fill="#E9D5FF" stroke="#6B21A8" strokeWidth="1" strokeLinejoin="round" />
+                    <line x1="11.5" y1="13.5" x2="18.5" y2="6.5" stroke="#A855F7" strokeWidth="1" />
+                    
+                    {/* Guard */}
+                    <path d="M8 12 L12 16" stroke="#9CA3AF" strokeWidth="3" strokeLinecap="round" />
+                    
+                    {/* Handle */}
+                    <path d="M6 16 L9 13" stroke="#78350F" strokeWidth="3" strokeLinecap="round" />
+                    
+                    {/* Pommel */}
+                    <circle cx="5.5" cy="18.5" r="1.5" fill="#4B5563" stroke="#1F2937" strokeWidth="0.5" />
+                </svg>
+            </div>
+        );
+    }
+    if (item.name.includes('Legendary Cleaver')) {
+        return (
+            <div className={`${className} flex items-center justify-center`}>
+                <svg viewBox="0 0 24 24" className="w-full h-full" style={{ filter: 'drop-shadow(0px 0px 8px rgba(249, 115, 22, 0.6))' }}>
+                    {/* Background Fire Effect (Subtle) */}
+                    <defs>
+                        <radialGradient id="fireGrad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                            <stop offset="0%" stopColor="#7c2d12" stopOpacity="0.6" />
+                            <stop offset="100%" stopColor="#7c2d12" stopOpacity="0" />
+                        </radialGradient>
+                    </defs>
+                    <circle cx="12" cy="12" r="12" fill="url(#fireGrad)" />
+
+                    {/* Handle */}
+                    <path d="M5 19 L8 16" stroke="#5D4037" strokeWidth="2.5" strokeLinecap="round" />
+                    <path d="M5 19 L8 16" stroke="#3E2723" strokeWidth="2.5" strokeDasharray="1 1" strokeLinecap="round" /> {/* Grip texture */}
+                    
+                    {/* Pommel */}
+                    <circle cx="4.5" cy="19.5" r="1.5" fill="#B45309" stroke="#78350F" strokeWidth="0.5" />
+
+                    {/* Guard - Golden Cross */}
+                    <path d="M6 15 L10 19" stroke="#D97706" strokeWidth="4" strokeLinecap="square" />
+                    <path d="M6 15 L10 19" stroke="#B45309" strokeWidth="1" /> {/* Detail line */}
+                    <circle cx="8" cy="17" r="1.2" fill="#EF4444" stroke="#7F1D1D" strokeWidth="0.5" /> {/* Gem */}
+
+                    {/* Blade - Massive Dark Slab */}
+                    {/* Shape: Wide base, straight back, angled cutting edge, heavy tip */}
+                    <path d="M8 15 L17 6 L21 6 L21 9 L19 11 L11 19 Z" fill="#1F2937" stroke="#111827" strokeWidth="0.5" />
+                    
+                    {/* Blade Edge Highlight */}
+                    <path d="M11 19 L19 11 L21 9" stroke="#9CA3AF" strokeWidth="0.5" fill="none" opacity="0.5" />
+
+                    {/* Glowing Runes / Magma Cracks */}
+                    <path d="M10 14 L12 12" stroke="#F97316" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M13 11 L15 9" stroke="#F97316" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M16 8 L17 7" stroke="#F97316" strokeWidth="1.5" strokeLinecap="round" />
+                    
+                    {/* Internal Glow */}
+                    <path d="M10 14 L12 12 M13 11 L15 9 M16 8 L17 7" stroke="#FEF3C7" strokeWidth="0.5" strokeLinecap="round" opacity="0.8" />
+
+                </svg>
+            </div>
+        );
+    }
+    if (item.name === 'Common Sword' || item.name === 'Uncommon Sword') {
+        return (
+            <div className={`${className} flex items-center justify-center`}>
+                <svg viewBox="0 0 24 24" className="w-full h-full" style={{ filter: 'drop-shadow(0px 1px 1px rgba(0,0,0,0.5))' }}>
+                    {/* Blade */}
+                    <path d="M10 14 L19 5 L21 3 L20 6 L11 15 Z" fill="#E5E7EB" stroke="#4B5563" strokeWidth="1" strokeLinejoin="round" />
+                    <line x1="11.5" y1="13.5" x2="18.5" y2="6.5" stroke="#9CA3AF" strokeWidth="1" />
+                    
+                    {/* Guard */}
+                    <path d="M8 12 L12 16" stroke="#9CA3AF" strokeWidth="3" strokeLinecap="round" />
+                    
+                    {/* Handle */}
+                    <path d="M6 16 L9 13" stroke="#78350F" strokeWidth="3" strokeLinecap="round" />
+                    
+                    {/* Pommel */}
+                    <circle cx="5.5" cy="18.5" r="1.5" fill="#4B5563" stroke="#1F2937" strokeWidth="0.5" />
+                </svg>
+            </div>
+        );
+    }
+    if (item.name === 'Rare Sword') {
+        return (
+            <div className={`${className} flex items-center justify-center`}>
+                <svg viewBox="0 0 24 24" className="w-full h-full" style={{ filter: 'drop-shadow(0px 0px 4px rgba(59, 130, 246, 0.6))' }}>
+                    {/* Blade - Blueish tint */}
+                    <path d="M10 14 L19 5 L21 3 L20 6 L11 15 Z" fill="#DBEAFE" stroke="#1E3A8A" strokeWidth="1" strokeLinejoin="round" />
+                    <line x1="11.5" y1="13.5" x2="18.5" y2="6.5" stroke="#60A5FA" strokeWidth="1" />
+                    
+                    {/* Guard */}
+                    <path d="M8 12 L12 16" stroke="#9CA3AF" strokeWidth="3" strokeLinecap="round" />
+                    
+                    {/* Handle */}
+                    <path d="M6 16 L9 13" stroke="#78350F" strokeWidth="3" strokeLinecap="round" />
+                    
+                    {/* Pommel */}
+                    <circle cx="5.5" cy="18.5" r="1.5" fill="#4B5563" stroke="#1F2937" strokeWidth="0.5" />
                 </svg>
             </div>
         );

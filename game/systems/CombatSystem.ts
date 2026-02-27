@@ -48,25 +48,67 @@ export const handleCombat = (
     const isPlayerUsingBow = playerWeapon?.weaponType === 'BOW';
 
     if (!isPlayerUsingBow && player.isAttacking) {
-        if (player.attackCooldown === ATTACK_COOLDOWN - 5) {
-            const hitbox = {
+        // Check for Legendary Cleaver
+        const isCleaver = playerWeapon?.name === 'Legendary Cleaver';
+        const attackRange = isCleaver ? ATTACK_RANGE * 2.5 : ATTACK_RANGE; // AOE Range
+        const attackHeight = isCleaver ? player.height * 2 : player.height;
+
+        // Cleaver has a different timing due to slow swing
+        // We need to sync the hit with the visual swing.
+        // Standard attack hits at ATTACK_COOLDOWN - 5.
+        // If cooldown is scaled, we should scale this check too.
+        // However, PlayerSystem sets attackCooldown. We need to know the max cooldown to check the frame.
+        // Since we don't have easy access to the dynamic max cooldown here without recalculating,
+        // we can check if it's the "start" of the attack or a specific window.
+        // Simpler approach: Check if just attacked.
+        // But handleCombat is called every frame. We need to hit ONCE per swing.
+        // The original code checks `player.attackCooldown === ATTACK_COOLDOWN - 5`.
+        // This assumes constant cooldown.
+        
+        // Let's rely on a property `didDamage` on the player or similar, but we don't have that.
+        // We can try to detect the "hit frame".
+        // If we change PlayerSystem to scale cooldown, we need to know that scale here.
+        // Let's assume we pass the maxCooldown or calculate it.
+        
+        const attackSpeed = player.stats.attackSpeed || 1;
+        const currentMaxCooldown = ATTACK_COOLDOWN / attackSpeed;
+        const hitFrame = Math.floor(currentMaxCooldown - (5 / attackSpeed)); // Scale the hit frame delay too? Or keep it fixed?
+        // Let's keep the hit frame relative to the start of the swing.
+        // Swing starts at currentMaxCooldown.
+        // We want to hit shortly after start.
+        
+        // Actually, simpler: The original code hits at `ATTACK_COOLDOWN - 5`.
+        // If we scale cooldown, `player.attackCooldown` starts at `currentMaxCooldown`.
+        // We want to hit when `player.attackCooldown` is around `currentMaxCooldown - 5`.
+        
+        // Floating point issues might occur if we use division.
+        // Let's use a range or Math.floor.
+        
+        if (Math.abs(player.attackCooldown - (currentMaxCooldown - 5)) < 1) {
+             const hitbox = {
                 pos: { 
-                    x: player.pos.x + (player.facingRight ? player.width : -ATTACK_RANGE),
-                    y: player.pos.y 
+                    x: player.pos.x + (player.facingRight ? player.width : -attackRange),
+                    y: player.pos.y - (isCleaver ? 20 : 0) // Hit slightly above too for big cleaver
                 },
-                width: ATTACK_RANGE,
-                height: player.height
+                width: attackRange,
+                height: attackHeight
             };
             
             enemies.forEach(e => {
                 if (checkAABB(hitbox, e)) {
                     e.health -= player.stats.damage; 
-                    e.vel.x = player.facingRight ? 7 : -7;
-                    e.vel.y = -5;
-                    createParticles(particles, e.pos.x + e.width/2, e.pos.y + e.height/2, 'red', 8);
+                    e.vel.x = player.facingRight ? (isCleaver ? 15 : 7) : (isCleaver ? -15 : -7); // High knockback
+                    e.vel.y = isCleaver ? -8 : -5;
+                    createParticles(particles, e.pos.x + e.width/2, e.pos.y + e.height/2, isCleaver ? 'orange' : 'red', isCleaver ? 20 : 8);
                     audio.playHit();
                 }
             });
+            
+            if (isCleaver) {
+                // Screen shake or big effect?
+                // We can add ground smash particles
+                 createParticles(particles, player.pos.x + (player.facingRight ? 50 : -50), player.pos.y + player.height, 'orange', 10);
+            }
         }
     }
 
@@ -248,13 +290,24 @@ export const generateSpecificLoot = (category: ItemCategory, rarity: ItemRarity,
         case 'WEAPON':
             const isBow = forcedWeaponType ? forcedWeaponType === 'BOW' : Math.random() > 0.5;
             weaponType = isBow ? 'BOW' : 'SWORD';
-            name = isBow ? "Bow" : "Sword";
-            stats = { damage: Math.floor((isBow ? 8 : 10) * multiplier) };
+            
+            if (rarity === 'LEGENDARY' && weaponType === 'SWORD') {
+                name = "Legendary Cleaver";
+                // High damage, slow attack speed (0.5 means 2x cooldown)
+                // Use negative value to reduce base attack speed (1.0)
+                stats = { damage: Math.floor(40 * multiplier), attackSpeed: -0.5 }; 
+            } else {
+                name = isBow ? "Bow" : "Sword";
+                stats = { damage: Math.floor((isBow ? 8 : 10) * multiplier) };
+            }
             break;
     }
 
     const rarityPrefix = rarity.charAt(0) + rarity.slice(1).toLowerCase();
-    name = `${rarityPrefix} ${name}`;
+    // Only prepend rarity if the name doesn't already start with it (or isn't a unique named item like Legendary Cleaver)
+    if (!name.toLowerCase().includes(rarityPrefix.toLowerCase())) {
+        name = `${rarityPrefix} ${name}`;
+    }
 
     return {
         id: `loot_${Date.now()}_${Math.random()}`,
