@@ -1,0 +1,5 @@
+{
+  "name": "My Stick game",
+  "description": "A high-octane 2D stickman fighting game with extraction mechanics. Battle enemies, collect loot, and escape before time runs out. Features a custom physics engine and procedural animation.",
+  "requestFramePermissions": []
+}
